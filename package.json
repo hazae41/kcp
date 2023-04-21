@@ -52,6 +52,7 @@
     "kcp",
     "tcp",
     "udp",
+    "smux",
     "protocol",
     "browser",
     "buffer",
