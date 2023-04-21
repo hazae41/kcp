@@ -18,7 +18,7 @@ npm i @hazae41/kcp
 ## Usage
 
 ```typescript
-import { TorClientDuplex, createWebSocketSnowflakeStream } from "@hazae41/kcp"
+import { KcpDuplex } from "@hazae41/kcp"
 
-const kcp = 
+const kcp = new KcpDuplex(udp)
 ```
