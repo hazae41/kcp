@@ -1,4 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary"
+import { ResultableUnderlyingDefaultSource, ResultableUnderlyingSink, SuperReadableStream, SuperWritableStream } from "@hazae41/cascade"
+import { Ok, Result } from "@hazae41/result"
 
 export async function createWebSocketStream(url: string) {
   const websocket = new WebSocket(url)
@@ -31,6 +33,9 @@ export type WebSocketStreamParams =
   & WebSocketSinkParams
 
 export class WebSocketStream {
+  readonly reader: SuperReadableStream<Opaque>
+  readonly writer: SuperWritableStream<Writable>
+
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
@@ -47,8 +52,11 @@ export class WebSocketStream {
     if (websocket.binaryType !== "arraybuffer")
       throw new Error(`WebSocket binaryType is not arraybuffer`)
 
-    this.readable = new ReadableStream(new WebSocketSource(websocket, params))
-    this.writable = new WritableStream(new WebSocketSink(websocket, params))
+    this.reader = new SuperReadableStream(new WebSocketSource(websocket, params))
+    this.writer = new SuperWritableStream(new WebSocketSink(websocket, params))
+
+    this.readable = this.reader.start()
+    this.writable = this.writer.start()
   }
 }
 
@@ -60,7 +68,7 @@ export interface WebSocketSourceParams {
   shouldCloseOnCancel?: boolean
 }
 
-export class WebSocketSource implements UnderlyingDefaultSource<Opaque> {
+export class WebSocketSource implements ResultableUnderlyingDefaultSource<Opaque> {
 
   constructor(
     readonly websocket: WebSocket,
@@ -95,13 +103,18 @@ export class WebSocketSource implements UnderlyingDefaultSource<Opaque> {
     this.websocket.addEventListener("message", onMessage, { passive: true })
     this.websocket.addEventListener("error", onError, { passive: true })
     this.websocket.addEventListener("close", onClose, { passive: true })
+
+    return Ok.void()
   }
 
   async cancel() {
-    if (!this.params.shouldCloseOnCancel) return
+    if (!this.params.shouldCloseOnCancel)
+      return Ok.void()
 
     this.websocket.close()
+    return Ok.void()
   }
+
 }
 
 export interface WebSocketSinkParams {
@@ -119,7 +132,7 @@ export interface WebSocketSinkParams {
   shouldCloseOnAbort?: boolean
 }
 
-export class WebSocketSink implements UnderlyingSink<Writable> {
+export class WebSocketSink implements ResultableUnderlyingSink<Writable> {
 
   constructor(
     readonly websocket: WebSocket,
@@ -146,23 +159,35 @@ export class WebSocketSink implements UnderlyingSink<Writable> {
 
     this.websocket.addEventListener("error", onError, { passive: true })
     this.websocket.addEventListener("close", onClose, { passive: true })
+
+    return Ok.void()
   }
 
-  async write(chunk: Writable) {
-    const bytes = Writable.toBytes(chunk)
+  async write(chunk: Writable): Promise<Result<void, unknown>> {
+    const bytes = Writable.tryWriteToBytes(chunk)
+
+    if (bytes.isErr())
+      return bytes
+
     // console.debug("ws ->", bytes)
-    this.websocket.send(bytes)
+    this.websocket.send(bytes.inner)
+
+    return Ok.void()
   }
 
   async abort() {
-    if (!this.params.shouldCloseOnAbort) return
+    if (!this.params.shouldCloseOnAbort)
+      return Ok.void()
 
     await tryClose(this.websocket)
+    return Ok.void()
   }
 
   async close() {
-    if (!this.params.shouldCloseOnClose) return
+    if (!this.params.shouldCloseOnClose)
+      return Ok.void()
 
     await tryClose(this.websocket)
+    return Ok.void()
   }
 }

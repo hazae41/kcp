@@ -1,6 +1,8 @@
-import { Cursor, Opaque, Readable, UnsafeOpaque, Writable } from "@hazae41/binary";
+import { Opaque, Writable } from "@hazae41/binary";
+import { Cursor, CursorReadError, CursorWriteUnknownError } from "@hazae41/cursor";
+import { Ok, Result } from "@hazae41/result";
 
-export class KcpSegment<T extends Writable> {
+export class KcpSegment<Fragment extends Writable> {
   readonly #class = KcpSegment
 
   static readonly commands = {
@@ -10,7 +12,7 @@ export class KcpSegment<T extends Writable> {
     wins: 84
   } as const
 
-  constructor(
+  private constructor(
     /**
      * conv
      */
@@ -42,10 +44,14 @@ export class KcpSegment<T extends Writable> {
     /**
      * data
      */
-    readonly fragment: T
+    readonly fragment: Fragment,
+    /**
+     * data size
+     */
+    readonly fragmentSize: number
   ) { }
 
-  static new<T extends Writable>(params: {
+  static tryNew<Fragment extends Writable>(params: {
     conversation: number,
     command: number,
     count?: number,
@@ -53,28 +59,20 @@ export class KcpSegment<T extends Writable> {
     timestamp?: number,
     serial: number,
     unackSerial: number,
-    fragment: T
-  }) {
+    fragment: Fragment
+  }): Result<KcpSegment<Fragment>, Writable.SizeError<Fragment>> {
     const { conversation, command, count, window, timestamp, serial, unackSerial, fragment } = params
-    return new this(conversation, command, count, window, timestamp, serial, unackSerial, fragment)
+
+    const fragmentSize = fragment.trySize()
+
+    if (fragmentSize.isErr())
+      return fragmentSize
+
+    return new Ok(new KcpSegment<Fragment>(conversation, command, count, window, timestamp, serial, unackSerial, fragment, fragmentSize.inner))
   }
 
-  #data?: {
-    size: number
-  }
-
-  prepare() {
-    const size = this.fragment.size()
-    this.#data = { size }
-    return this
-  }
-
-  size() {
-    if (!this.#data)
-      throw new Error(`Unprepared ${this.#class.name}`)
-    const { size } = this.#data
-
-    return 0
+  trySize(): Result<number, never> {
+    return new Ok(0
       + 4
       + 1
       + 1
@@ -83,48 +81,42 @@ export class KcpSegment<T extends Writable> {
       + 4
       + 4
       + 4
-      + size
+      + this.fragmentSize)
   }
 
-  write(cursor: Cursor) {
-    if (!this.#data)
-      throw new Error(`Unprepared ${this.#class.name}`)
-    const { size } = this.#data
+  tryWrite(cursor: Cursor): Result<void, Writable.WriteError<Fragment> | CursorWriteUnknownError> {
+    return Result.unthrowSync(t => {
+      cursor.tryWriteUint32(this.conversation, true).throw(t)
+      cursor.tryWriteUint8(this.command).throw(t)
+      cursor.tryWriteUint8(this.count).throw(t)
+      cursor.tryWriteUint16(this.window, true).throw(t)
+      cursor.tryWriteUint32(this.timestamp, true).throw(t)
+      cursor.tryWriteUint32(this.serial, true).throw(t)
+      cursor.tryWriteUint32(this.unackSerial, true).throw(t)
+      cursor.tryWriteUint32(this.fragmentSize, true).throw(t)
 
-    cursor.writeUint32(this.conversation, true)
-    cursor.writeUint8(this.command)
-    cursor.writeUint8(this.count)
-    cursor.writeUint16(this.window, true)
-    cursor.writeUint32(this.timestamp, true)
-    cursor.writeUint32(this.serial, true)
-    cursor.writeUint32(this.unackSerial, true)
-    cursor.writeUint32(size, true)
-    this.fragment.write(cursor)
+      this.fragment.tryWrite(cursor).throw(t)
+
+      return Ok.void()
+    })
   }
 
-  static read(cursor: Cursor) {
-    const conversation = cursor.readUint32(true)
-    const command = cursor.readUint8()
-    const count = cursor.readUint8()
-    const window = cursor.readUint16(true)
-    const timestamp = cursor.readUint32(true)
-    const serial = cursor.readUint32(true)
-    const unackSerial = cursor.readUint32(true)
-    const length = cursor.readUint32(true)
-    const bytes = cursor.read(length)
+  static tryRead(cursor: Cursor): Result<KcpSegment<Opaque>, CursorReadError> {
+    return Result.unthrowSync(t => {
+      const conversation = cursor.tryReadUint32(true).throw(t)
+      const command = cursor.tryReadUint8().throw(t)
+      const count = cursor.tryReadUint8().throw(t)
+      const window = cursor.tryReadUint16(true).throw(t)
+      const timestamp = cursor.tryReadUint32(true).throw(t)
+      const serial = cursor.tryReadUint32(true).throw(t)
+      const unackSerial = cursor.tryReadUint32(true).throw(t)
+      const length = cursor.tryReadUint32(true).throw(t)
+      const bytes = cursor.tryRead(length).throw(t)
 
-    const opaque = Readable.fromBytes(UnsafeOpaque, bytes)
+      const fragment = new Opaque(bytes)
 
-    return new this<Opaque>(conversation, command, count, window, timestamp, serial, unackSerial, opaque)
+      return KcpSegment.tryNew({ conversation, command, count, window, timestamp, serial, unackSerial, fragment })
+    })
   }
 
-  static tryRead(cursor: Cursor) {
-    const offset = cursor.offset
-
-    try {
-      return this.read(cursor)
-    } catch (e: unknown) {
-      cursor.offset = offset
-    }
-  }
 }

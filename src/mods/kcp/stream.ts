@@ -1,4 +1,5 @@
-import { Cursor, Opaque, Writable } from "@hazae41/binary";
+import { Opaque, Writable } from "@hazae41/binary";
+import { Cursor } from "@hazae41/cursor";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -12,11 +13,11 @@ export class KcpDuplex {
     this.#secret = new SecretKcpDuplex(stream)
   }
 
-  get readable() {
+  get readable(): ReadableStream<Opaque> {
     return this.#secret.readable
   }
 
-  get writable() {
+  get writable(): WritableStream<Writable> {
     return this.#secret.writable
   }
 
@@ -38,7 +39,7 @@ export class SecretKcpDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly conversation = Cursor.random(4).getUint32(true)
+  readonly conversation = Cursor.random(4).tryGetUint32(true).unwrap()
 
   constructor(
     readonly stream: ReadableWritablePair<Opaque, Writable>
@@ -68,8 +69,7 @@ export class SecretKcpDuplex {
 
     this.reader.stream.closed = {}
 
-    const closeEvent = new CloseEvent("close", {})
-    await this.reader.events.dispatchEvent(closeEvent, "close")
+    await this.reader.events.tryEmit("close", undefined).then(r => r.unwrap())
   }
 
   async #onReadError(reason?: unknown) {
@@ -78,9 +78,7 @@ export class SecretKcpDuplex {
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
-    const error = new Error(`Errored`, { cause: reason })
-    const errorEvent = new ErrorEvent("error", { error })
-    await this.reader.events.dispatchEvent(errorEvent, "error")
+    await this.reader.events.tryEmit("error", reason).then(r => r.unwrap())
   }
 
   async #onWriteClose() {
@@ -88,8 +86,7 @@ export class SecretKcpDuplex {
 
     this.writer.stream.closed = {}
 
-    const closeEvent = new CloseEvent("close", {})
-    await this.writer.events.dispatchEvent(closeEvent, "close")
+    await this.writer.events.tryEmit("close", undefined).then(r => r.unwrap())
   }
 
   async #onWriteError(reason?: unknown) {
@@ -98,9 +95,7 @@ export class SecretKcpDuplex {
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
-    const error = new Error(`Errored`, { cause: reason })
-    const errorEvent = new ErrorEvent("error", { error })
-    await this.writer.events.dispatchEvent(errorEvent, "error")
+    await this.writer.events.tryEmit("error", reason).then(r => r.unwrap())
   }
 
 }
