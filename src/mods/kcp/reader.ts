@@ -27,27 +27,22 @@ export class SecretKcpReader {
   }
 
   async #onRead(chunk: Opaque): Promise<Result<void, EventError>> {
-    const cursor = new Cursor(chunk.bytes)
+    return await Result.unthrow(async t => {
+      const cursor = new Cursor(chunk.bytes)
 
-    while (cursor.remaining) {
-      const segment = Readable.tryReadOrRollback(KcpSegment, cursor)
+      while (cursor.remaining) {
+        const segment = Readable.tryReadOrRollback(KcpSegment, cursor)
 
-      if (segment.isErr()) {
-        console.warn(`Not a KCP segment`)
-        break
+        if (segment.isErr()) {
+          console.warn(`Not a KCP segment`)
+          break
+        }
+
+        await this.#onSegment(segment.get()).then(r => r.throw(t))
       }
 
-      const result = await this.#onSegment(segment.get())
-
-      if (result.isErr())
-        return result
-      else
-        result.ignore()
-
-      continue
-    }
-
-    return Ok.void()
+      return Ok.void()
+    })
   }
 
   async #onSegment(segment: KcpSegment<Opaque>): Promise<Result<void, EventError>> {

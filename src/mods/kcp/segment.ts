@@ -61,14 +61,13 @@ export class KcpSegment<Fragment extends Writable> {
     unackSerial: number,
     fragment: Fragment
   }): Result<KcpSegment<Fragment>, Writable.SizeError<Fragment>> {
-    const { conversation, command, count, window, timestamp, serial, unackSerial, fragment } = params
+    return Result.unthrowSync(t => {
+      const { conversation, command, count, window, timestamp, serial, unackSerial, fragment } = params
 
-    const fragmentSize = fragment.trySize()
+      const fragmentSize = fragment.trySize().throw(t)
 
-    if (fragmentSize.isErr())
-      return fragmentSize
-
-    return new Ok(new KcpSegment<Fragment>(conversation, command, count, window, timestamp, serial, unackSerial, fragment, fragmentSize.get()))
+      return new Ok(new KcpSegment<Fragment>(conversation, command, count, window, timestamp, serial, unackSerial, fragment, fragmentSize))
+    })
   }
 
   trySize(): Result<number, never> {
