@@ -69,7 +69,15 @@ export class SecretKcpDuplex {
 
     this.reader.stream.closed = {}
 
-    await this.reader.events.tryEmit("close", undefined).then(r => r.unwrap())
+    await this.reader.events.emit("close", undefined)
+  }
+
+  async #onWriteClose() {
+    console.debug(`${this.#class.name}.onWriteClose`)
+
+    this.writer.stream.closed = {}
+
+    await this.writer.events.emit("close", undefined)
   }
 
   async #onReadError(reason?: unknown) {
@@ -78,15 +86,7 @@ export class SecretKcpDuplex {
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
-    await this.reader.events.tryEmit("error", reason).then(r => r.unwrap())
-  }
-
-  async #onWriteClose() {
-    console.debug(`${this.#class.name}.onWriteClose`)
-
-    this.writer.stream.closed = {}
-
-    await this.writer.events.tryEmit("close", undefined).then(r => r.unwrap())
+    await this.reader.events.emit("error", reason)
   }
 
   async #onWriteError(reason?: unknown) {
@@ -95,7 +95,7 @@ export class SecretKcpDuplex {
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
-    await this.writer.events.tryEmit("error", reason).then(r => r.unwrap())
+    await this.writer.events.emit("error", reason)
   }
 
 }

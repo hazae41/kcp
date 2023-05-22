@@ -68,7 +68,7 @@ export class KcpSegment<Fragment extends Writable> {
     if (fragmentSize.isErr())
       return fragmentSize
 
-    return new Ok(new KcpSegment<Fragment>(conversation, command, count, window, timestamp, serial, unackSerial, fragment, fragmentSize.inner))
+    return new Ok(new KcpSegment<Fragment>(conversation, command, count, window, timestamp, serial, unackSerial, fragment, fragmentSize.get()))
   }
 
   trySize(): Result<number, never> {
