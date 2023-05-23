@@ -1,7 +1,7 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { Cascade } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { Err, Ok } from "@hazae41/result";
+import { Ok } from "@hazae41/result";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -89,25 +89,29 @@ export class SecretKcpDuplex {
   }
 
   async #onReadError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onReadError`, reason)
+    const error = Cascade.filter(reason)
+
+    console.debug(`${this.#class.name}.onReadError`, { error: error.inner })
 
     this.reader.stream.closed = { reason }
     this.writer.stream.controller.inner.error(reason)
 
-    await this.reader.events.emit("error", reason)
+    await this.reader.events.emit("error", error.inner)
 
-    return new Err(Cascade.rethrow(reason))
+    return Cascade.rethrow(error)
   }
 
   async #onWriteError(reason?: unknown) {
-    console.debug(`${this.#class.name}.onWriteError`, reason)
+    const error = Cascade.filter(reason)
+
+    console.debug(`${this.#class.name}.onWriteError`, { error: error.inner })
 
     this.writer.stream.closed = { reason }
     this.reader.stream.controller.inner.error(reason)
 
-    await this.writer.events.emit("error", reason)
+    await this.writer.events.emit("error", error.inner)
 
-    return new Err(Cascade.rethrow(reason))
+    return Cascade.rethrow(error)
   }
 
 }
