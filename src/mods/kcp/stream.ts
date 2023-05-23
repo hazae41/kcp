@@ -1,6 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary";
-import { Cascade } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
+import { Err, Ok, Panic } from "@hazae41/result";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -58,11 +58,13 @@ export class SecretKcpDuplex {
       .pipeTo(read.writable)
       .then(this.#onReadClose.bind(this))
       .catch(this.#onReadError.bind(this))
+      .catch(console.error)
 
     write.readable
       .pipeTo(stream.writable)
       .then(this.#onWriteClose.bind(this))
       .catch(this.#onWriteError.bind(this))
+      .catch(console.error)
   }
 
   async #onReadClose() {
@@ -71,6 +73,8 @@ export class SecretKcpDuplex {
     this.reader.stream.closed = {}
 
     await this.reader.events.emit("close", undefined)
+
+    return Ok.void()
   }
 
   async #onWriteClose() {
@@ -79,28 +83,30 @@ export class SecretKcpDuplex {
     this.writer.stream.closed = {}
 
     await this.writer.events.emit("close", undefined)
+
+    return Ok.void()
   }
 
   async #onReadError(reason?: unknown) {
-    const error = Cascade.unthrow(reason).get()
-
-    console.debug(`${this.#class.name}.onReadError`, error.cause)
+    console.debug(`${this.#class.name}.onReadError`, reason)
 
     this.reader.stream.closed = { reason }
-    this.writer.stream.error(reason)
+    this.writer.stream.controller.inner.error(reason)
 
-    await this.reader.events.emit("error", error.cause)
+    await this.reader.events.emit("error", reason)
+
+    return new Err(Panic.rethrow(reason))
   }
 
   async #onWriteError(reason?: unknown) {
-    const error = Cascade.unthrow(reason).get()
-
-    console.debug(`${this.#class.name}.onWriteError`, error.cause)
+    console.debug(`${this.#class.name}.onWriteError`, reason)
 
     this.writer.stream.closed = { reason }
-    this.reader.stream.error(reason)
+    this.reader.stream.controller.inner.error(reason)
 
-    await this.writer.events.emit("error", error.cause)
+    await this.writer.events.emit("error", reason)
+
+    return new Err(Panic.rethrow(reason))
   }
 
 }
