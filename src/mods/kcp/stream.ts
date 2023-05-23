@@ -1,6 +1,7 @@
 import { Opaque, Writable } from "@hazae41/binary";
+import { Cascade } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { Err, Ok, Panic } from "@hazae41/result";
+import { Err, Ok } from "@hazae41/result";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -95,7 +96,7 @@ export class SecretKcpDuplex {
 
     await this.reader.events.emit("error", reason)
 
-    return new Err(Panic.rethrow(reason))
+    return new Err(Cascade.rethrow(reason))
   }
 
   async #onWriteError(reason?: unknown) {
@@ -106,7 +107,7 @@ export class SecretKcpDuplex {
 
     await this.writer.events.emit("error", reason)
 
-    return new Err(Panic.rethrow(reason))
+    return new Err(Cascade.rethrow(reason))
   }
 
 }
