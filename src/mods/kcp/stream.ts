@@ -59,12 +59,14 @@ export class SecretKcpDuplex {
       .pipeTo(read.writable)
       .then(this.#onReadClose.bind(this))
       .catch(this.#onReadError.bind(this))
+      .then(r => r.ignore())
       .catch(console.error)
 
     write.readable
       .pipeTo(stream.writable)
       .then(this.#onWriteClose.bind(this))
       .catch(this.#onWriteError.bind(this))
+      .then(r => r.ignore())
       .catch(console.error)
   }
 
