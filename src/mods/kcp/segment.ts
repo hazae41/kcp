@@ -2,7 +2,7 @@ import { Opaque, Writable } from "@hazae41/binary";
 import { Cursor, CursorReadError, CursorWriteUnknownError } from "@hazae41/cursor";
 import { Ok, Result } from "@hazae41/result";
 
-export class KcpSegment<Fragment extends Writable> {
+export class KcpSegment<Fragment extends Writable.Infer<Fragment>> {
   readonly #class = KcpSegment
 
   static readonly commands = {
@@ -51,7 +51,7 @@ export class KcpSegment<Fragment extends Writable> {
     readonly fragmentSize: number
   ) { }
 
-  static tryNew<Fragment extends Writable>(params: {
+  static tryNew<Fragment extends Writable.Infer<Fragment>>(params: {
     conversation: number,
     command: number,
     count?: number,

@@ -23,7 +23,7 @@ export class SecretKcpWriter {
   async #onWrite(fragment: Writable): Promise<Result<void, unknown | AbortError | ErrorError | CloseError>> {
     return await Result.unthrow(async t => {
       if (this.stream.closed) // TODO: check if we can remove this
-        return new Err(new CloseError({ cause: this.stream.closed.reason }))
+        return new Err(CloseError.from(this.stream.closed.reason))
 
       const conversation = this.parent.conversation
       const command = KcpSegment.commands.push

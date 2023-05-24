@@ -91,12 +91,12 @@ export class SecretKcpDuplex {
   async #onReadError(reason?: unknown) {
     const error = Cascade.filter(reason)
 
-    console.debug(`${this.#class.name}.onReadError`, { error: error.inner })
+    console.debug(`${this.#class.name}.onReadError`, { reason })
 
     this.reader.stream.closed = { reason }
-    this.writer.stream.controller.inner.error(reason)
+    this.writer.stream.error(reason)
 
-    await this.reader.events.emit("error", error.inner)
+    await this.reader.events.emit("error", reason)
 
     return Cascade.rethrow(error)
   }
@@ -104,12 +104,12 @@ export class SecretKcpDuplex {
   async #onWriteError(reason?: unknown) {
     const error = Cascade.filter(reason)
 
-    console.debug(`${this.#class.name}.onWriteError`, { error: error.inner })
+    console.debug(`${this.#class.name}.onWriteError`, { reason })
 
     this.writer.stream.closed = { reason }
-    this.reader.stream.controller.inner.error(reason)
+    this.reader.stream.error(reason)
 
-    await this.writer.events.emit("error", error.inner)
+    await this.writer.events.emit("error", reason)
 
     return Cascade.rethrow(error)
   }
