@@ -20,7 +20,7 @@ export class SecretKcpWriter {
     })
   }
 
-  async #onWrite(fragment: Writable): Promise<Result<void, unknown | AbortError | ErrorError | CloseError>> {
+  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | AbortError | ErrorError | CloseError>> {
     return await Result.unthrow(async t => {
       if (this.stream.closed) // TODO: check if we can remove this
         return new Err(CloseError.from(this.stream.closed.reason))
