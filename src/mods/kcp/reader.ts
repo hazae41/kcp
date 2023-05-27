@@ -31,7 +31,7 @@ export class SecretKcpReader {
       const cursor = new Cursor(chunk.bytes)
 
       while (cursor.remaining) {
-        const segment = Readable.tryReadOrRollback(KcpSegment, cursor)
+        const segment = Readable.tryReadOrRollback(KcpSegment, cursor).ignore()
 
         if (segment.isErr()) {
           console.warn(`Not a KCP segment`)
