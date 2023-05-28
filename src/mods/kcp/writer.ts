@@ -22,7 +22,9 @@ export class SecretKcpWriter {
 
   async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | AbortError | ErrorError | CloseError>> {
     return await Result.unthrow(async t => {
-      if (this.stream.closed) // TODO: check if we can remove this
+      if (this.stream.closed?.reason !== undefined)
+        return new Err(ErrorError.from(this.stream.closed.reason))
+      if (this.stream.closed !== undefined)
         return new Err(CloseError.from(this.stream.closed.reason))
 
       const conversation = this.parent.conversation
@@ -47,13 +49,11 @@ export class SecretKcpWriter {
         this.stream.enqueue(segment)
       }, 1000)
 
-      const signal = AbortSignal.timeout(60 * 1000)
-
-      const result = await Plume.tryWaitStream(this.parent.reader.events, "ack", segment => {
+      const result = await Plume.tryWaitOrStreamOrSignal(this.parent.reader.events, "ack", segment => {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }, signal)
+      }, AbortSignal.timeout(60 * 1000))
 
       clearInterval(retry)
 
