@@ -2,7 +2,7 @@ import { Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { None, Some } from "@hazae41/option";
 import { AbortError, CloseError, ErrorError, Plume, StreamEvents, SuperEventTarget } from "@hazae41/plume";
-import { Err, Ok, Result } from "@hazae41/result";
+import { Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
@@ -22,11 +22,6 @@ export class SecretKcpWriter {
 
   async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | AbortError | ErrorError | CloseError>> {
     return await Result.unthrow(async t => {
-      if (this.stream.closed?.reason !== undefined)
-        return new Err(ErrorError.from(this.stream.closed.reason))
-      if (this.stream.closed !== undefined)
-        return new Err(CloseError.from(this.stream.closed.reason))
-
       const conversation = this.parent.conversation
       const command = KcpSegment.commands.push
       const serial = this.parent.send_counter++
@@ -46,18 +41,16 @@ export class SecretKcpWriter {
 
         const delay = Date.now() - start
         console.debug(`Retrying KCP after`, delay, `milliseconds`)
-        this.stream.enqueue(segment)
+        this.stream.tryEnqueue(segment).inspectErrSync(console.debug).ignore()
       }, 1000)
 
-      const result = await Plume.tryWaitOrStreamOrSignal(this.parent.reader.events, "ack", segment => {
+      Plume.tryWaitOrStream(this.parent.reader.events, "ack", segment => {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }, AbortSignal.timeout(60 * 1000))
+      }).catch(console.debug).finally(() => clearInterval(retry))
 
-      clearInterval(retry)
-
-      return result
+      return Ok.void()
     })
   }
 
