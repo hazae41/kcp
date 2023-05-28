@@ -48,7 +48,9 @@ export class SecretKcpWriter {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }).catch(console.debug).finally(() => clearInterval(retry))
+      }).then(r => r.inspectErrSync(console.debug).ignore())
+        .catch(console.error)
+        .finally(() => clearInterval(retry))
 
       return Ok.void()
     })
