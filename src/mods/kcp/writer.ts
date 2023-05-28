@@ -46,15 +46,15 @@ export class SecretKcpWriter {
           return
         }
 
-        this.stream.tryEnqueue(segment).inspectErrSync(console.debug).ignore()
+        this.stream.tryEnqueue(segment).inspectErrSync(e => console.debug({ e })).ignore()
       }, 300)
 
       Plume.tryWaitOrStream(this.parent.reader.events, "ack", segment => {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }).then(r => r.inspectErrSync(console.debug).ignore())
-        .catch(console.error)
+      }).then(r => r.inspectErrSync(e => console.debug({ e })).ignore())
+        .catch(e => console.error({ e }))
         .finally(() => clearInterval(retry))
 
       return Ok.void()
