@@ -2,12 +2,32 @@ import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { EventError, StreamEvents, SuperEventTarget } from "@hazae41/plume";
-import { Ok, Result } from "@hazae41/result";
+import { Err, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
 export type SecretKcpReaderEvents = StreamEvents & {
   ack: KcpSegment<Opaque>
+}
+
+export class ExpectedKcpSegmentError extends Error {
+  readonly #class = ExpectedKcpSegmentError
+  readonly name = this.#class.name
+
+  constructor() {
+    super(`Expected a KCP segment`)
+  }
+
+}
+
+export class UnknownKcpCommandError extends Error {
+  readonly #class = UnknownKcpCommandError
+  readonly name = this.#class.name
+
+  constructor() {
+    super(`Unknown KCP command`)
+  }
+
 }
 
 export class SecretKcpReader {
@@ -26,17 +46,15 @@ export class SecretKcpReader {
     })
   }
 
-  async #onRead(chunk: Opaque): Promise<Result<void, EventError>> {
+  async #onRead(chunk: Opaque): Promise<Result<void, ExpectedKcpSegmentError | UnknownKcpCommandError | EventError>> {
     return await Result.unthrow(async t => {
       const cursor = new Cursor(chunk.bytes)
 
       while (cursor.remaining) {
         const segment = Readable.tryReadOrRollback(KcpSegment, cursor).ignore()
 
-        if (segment.isErr()) {
-          console.warn(`Not a KCP segment`)
-          break
-        }
+        if (segment.isErr())
+          return new Err(new ExpectedKcpSegmentError())
 
         await this.#onSegment(segment.get()).then(r => r.throw(t))
       }
@@ -45,7 +63,7 @@ export class SecretKcpReader {
     })
   }
 
-  async #onSegment(segment: KcpSegment<Opaque>): Promise<Result<void, EventError>> {
+  async #onSegment(segment: KcpSegment<Opaque>): Promise<Result<void, UnknownKcpCommandError | EventError>> {
     if (segment.conversation !== this.parent.conversation)
       return Ok.void()
 
@@ -56,8 +74,7 @@ export class SecretKcpReader {
     if (segment.command === KcpSegment.commands.wask)
       return await this.#onWaskSegment(segment)
 
-    console.warn(`Unknown KCP command`)
-    return Ok.void()
+    return new Err(new UnknownKcpCommandError())
   }
 
   async #onPushSegment(segment: KcpSegment<Opaque>): Promise<Result<void, never>> {
@@ -73,12 +90,12 @@ export class SecretKcpReader {
     this.parent.writer.stream.enqueue(ack.get())
 
     if (segment.serial < this.parent.recv_counter) {
-      console.warn(`Received previous KCP segment`)
+      console.debug(`Received previous KCP segment`)
       return Ok.void()
     }
 
     if (segment.serial > this.parent.recv_counter) {
-      console.warn(`Received next KCP segment`)
+      console.debug(`Received next KCP segment`)
       this.#buffer.set(segment.serial, segment)
       return Ok.void()
     }
@@ -89,7 +106,7 @@ export class SecretKcpReader {
     let next: KcpSegment<Opaque> | undefined
 
     while (next = this.#buffer.get(this.parent.recv_counter)) {
-      console.warn(`Unblocked next KCP segment`)
+      console.debug(`Unblocked next KCP segment`)
       this.stream.enqueue(next.fragment)
       this.#buffer.delete(this.parent.recv_counter)
       this.parent.recv_counter++
