@@ -40,10 +40,14 @@ export class SecretKcpWriter {
         }
 
         const delay = Date.now() - start
-        console.debug(`Retrying KCP after`, delay / 1000, `seconds`)
+
+        if (delay > 3_000) {
+          clearInterval(retry)
+          return
+        }
 
         this.stream.tryEnqueue(segment).inspectErrSync(console.debug).ignore()
-      }, 100)
+      }, 300)
 
       Plume.tryWaitOrStream(this.parent.reader.events, "ack", segment => {
         if (segment.serial !== serial)
