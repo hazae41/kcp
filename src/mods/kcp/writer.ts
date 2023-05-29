@@ -53,8 +53,8 @@ export class SecretKcpWriter {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }).then(r => r.inspectErrSync(e => console.debug({ e })).ignore())
-        .catch(e => console.error({ e }))
+      }).then(r => r.unwrap())
+        .catch(e => console.debug("Could not wait ACK", { e }))
         .finally(() => clearInterval(retry))
 
       return Ok.void()
