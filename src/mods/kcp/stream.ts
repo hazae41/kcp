@@ -40,7 +40,7 @@ export class SecretKcpDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly conversation = Cursor.random(4).tryGetUint32(true).unwrap()
+  readonly conversation = Cursor.tryRandom(4).unwrap().tryGetUint32(true).unwrap()
 
   constructor(
     readonly stream: ReadableWritablePair<Opaque, Writable>

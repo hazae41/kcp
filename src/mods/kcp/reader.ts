@@ -6,9 +6,9 @@ import { Err, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
-export type SecretKcpReaderEvents = StreamEvents & {
-  ack: KcpSegment<Opaque>
-}
+export type KcpReadError =
+  | ExpectedKcpSegmentError
+  | UnknownKcpCommandError
 
 export class ExpectedKcpSegmentError extends Error {
   readonly #class = ExpectedKcpSegmentError
@@ -30,6 +30,10 @@ export class UnknownKcpCommandError extends Error {
 
 }
 
+export type SecretKcpReaderEvents = StreamEvents & {
+  ack: KcpSegment<Opaque>
+}
+
 export class SecretKcpReader {
 
   readonly events = new SuperEventTarget<SecretKcpReaderEvents>()
@@ -46,7 +50,7 @@ export class SecretKcpReader {
     })
   }
 
-  async #onRead(chunk: Opaque): Promise<Result<void, ExpectedKcpSegmentError | UnknownKcpCommandError | EventError>> {
+  async #onRead(chunk: Opaque): Promise<Result<void, KcpReadError | EventError>> {
     return await Result.unthrow(async t => {
       const cursor = new Cursor(chunk.bytes)
 
@@ -63,7 +67,7 @@ export class SecretKcpReader {
     })
   }
 
-  async #onSegment(segment: KcpSegment<Opaque>): Promise<Result<void, UnknownKcpCommandError | EventError>> {
+  async #onSegment(segment: KcpSegment<Opaque>): Promise<Result<void, KcpReadError | EventError>> {
     if (segment.conversation !== this.parent.conversation)
       return Ok.void()
 
