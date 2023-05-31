@@ -2,7 +2,7 @@ import { Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { None, Some } from "@hazae41/option";
 import { AbortError, CloseError, ErrorError, Plume, StreamEvents, SuperEventTarget } from "@hazae41/plume";
-import { Ok, Result } from "@hazae41/result";
+import { Catched, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
@@ -53,7 +53,8 @@ export class SecretKcpWriter {
         if (segment.serial !== serial)
           return new Ok(new None())
         return new Ok(new Some(Ok.void()))
-      }).then(r => r.unwrap())
+      }).catch(Catched.fromAndThrow)
+        .then(r => r.unwrap())
         .catch(e => console.debug("Could not wait ACK", { e }))
         .finally(() => clearInterval(retry))
 
