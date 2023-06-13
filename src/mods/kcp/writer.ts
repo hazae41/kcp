@@ -1,7 +1,7 @@
 import { Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { None, Some } from "@hazae41/option";
-import { AbortError, CloseError, ErrorError, Plume, StreamEvents, SuperEventTarget } from "@hazae41/plume";
+import { AbortedError, ClosedError, ErroredError, Plume, StreamEvents, SuperEventTarget } from "@hazae41/plume";
 import { Catched, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
@@ -20,7 +20,7 @@ export class SecretKcpWriter {
     })
   }
 
-  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | AbortError | ErrorError | CloseError>> {
+  async #onWrite<T extends Writable.Infer<T>>(fragment: T): Promise<Result<void, Writable.SizeError<T> | AbortedError | ErroredError | ClosedError>> {
     return await Result.unthrow(async t => {
       const conversation = this.parent.conversation
       const command = KcpSegment.commands.push
