@@ -1,7 +1,7 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { EventError, StreamEvents, SuperEventTarget } from "@hazae41/plume";
+import { CloseEvents, ErrorEvents, EventError, SuperEventTarget } from "@hazae41/plume";
 import { Err, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
@@ -30,8 +30,8 @@ export class UnknownKcpCommandError extends Error {
 
 }
 
-export type SecretKcpReaderEvents = StreamEvents & {
-  ack: KcpSegment<Opaque>
+export type SecretKcpReaderEvents = CloseEvents & ErrorEvents & {
+  ack: (segment: KcpSegment<Opaque>) => void
 }
 
 export class SecretKcpReader {
@@ -120,7 +120,8 @@ export class SecretKcpReader {
   }
 
   async #onAckSegment(segment: KcpSegment<Opaque>): Promise<Result<void, EventError>> {
-    return await this.events.tryEmit("ack", segment).then(r => r.clear())
+    await this.events.emit("ack", [segment])
+    return Ok.void()
   }
 
   async #onWaskSegment(segment: KcpSegment<Opaque>): Promise<Result<void, never>> {
