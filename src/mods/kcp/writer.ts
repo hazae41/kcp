@@ -1,6 +1,7 @@
 import { Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
-import { None, Some } from "@hazae41/option";
+import { Future } from "@hazae41/future";
+import { None } from "@hazae41/option";
 import { AbortedError, CloseEvents, ClosedError, ErrorEvents, ErroredError, Plume, SuperEventTarget } from "@hazae41/plume";
 import { Catched, Ok, Result } from "@hazae41/result";
 import { KcpSegment } from "./segment.js";
@@ -49,10 +50,11 @@ export class SecretKcpWriter {
         this.stream.tryEnqueue(segment).inspectErrSync(e => console.debug({ e })).ignore()
       }, 300)
 
-      Plume.tryWaitOrCloseOrError(this.parent.reader.events, "ack", (segment) => {
+      Plume.tryWaitOrCloseOrError(this.parent.reader.events, "ack", (future: Future<Ok<void>>, segment) => {
         if (segment.serial !== serial)
           return new None()
-        return new Some(Ok.void())
+        future.resolve(Ok.void())
+        return new None()
       }).catch(Catched.fromAndThrow)
         .then(r => r.unwrap())
         .catch(e => console.debug("Could not wait ACK", { e }))
