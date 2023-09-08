@@ -1,6 +1,7 @@
 import { Opaque, Writable } from "@hazae41/binary";
+import { Bytes } from "@hazae41/bytes";
 import { Cursor } from "@hazae41/cursor";
-import { Ok, Result } from "@hazae41/result";
+import { Catched, Ok } from "@hazae41/result";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -40,7 +41,7 @@ export class SecretKcpDuplex {
   readonly readable: ReadableStream<Opaque>
   readonly writable: WritableStream<Writable>
 
-  readonly conversation = Cursor.tryRandom(4).unwrap().tryGetUint32(true).unwrap()
+  readonly conversation = new Cursor(Bytes.tryRandom(4).unwrap()).tryGetUint32(true).unwrap()
 
   constructor(
     readonly stream: ReadableWritablePair<Opaque, Writable>
@@ -97,7 +98,7 @@ export class SecretKcpDuplex {
 
     await this.reader.events.emit("error", [reason])
 
-    return Result.rethrow(reason)
+    return Catched.throwOrErr(reason)
   }
 
   async #onWriteError(reason?: unknown) {
@@ -108,7 +109,7 @@ export class SecretKcpDuplex {
 
     await this.writer.events.emit("error", [reason])
 
-    return Result.rethrow(reason)
+    return Catched.throwOrErr(reason)
   }
 
 }

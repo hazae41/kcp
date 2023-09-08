@@ -19,7 +19,7 @@ test("kcp segment", async ({ test }) => {
   const timestamp = Date.now() / 1000
   const serial = 0
   const unackSerial = 0
-  const fragment = Opaque.random(130)
+  const fragment = new Opaque(Bytes.random(130))
 
   const segment = KcpSegment.tryNew({ conversation, command, count, window, timestamp, serial, unackSerial, fragment }).unwrap()
 

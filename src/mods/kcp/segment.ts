@@ -51,6 +51,8 @@ export class KcpSegment<Fragment extends Writable.Infer<Fragment>> {
     readonly fragmentSize: number
   ) { }
 
+  [Symbol.dispose]() { }
+
   static tryNew<Fragment extends Writable.Infer<Fragment>>(params: {
     conversation: number,
     command: number,
