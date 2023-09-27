@@ -1,6 +1,7 @@
 import { Opaque, Writable } from "@hazae41/binary"
 import { ResultableUnderlyingDefaultSource, ResultableUnderlyingSink, SuperReadableStream, SuperWritableStream } from "@hazae41/cascade"
 import { Ok, Panic, Result } from "@hazae41/result"
+import { Console } from "mods/console/index.js"
 
 export async function tryCreateWebSocketStream(url: string) {
   const websocket = new WebSocket(url)
@@ -93,7 +94,7 @@ export class WebSocketSource implements ResultableUnderlyingDefaultSource<Opaque
 
     this.#onMessage = (msgEvent: MessageEvent<ArrayBuffer>) => {
       const bytes = new Uint8Array(msgEvent.data)
-      console.debug("ws <-", bytes)
+      Console.debug("ws <-", bytes)
       controller.enqueue(new Opaque(bytes))
     }
 
@@ -180,7 +181,7 @@ export class WebSocketSink implements ResultableUnderlyingSink<Writable> {
     return await Result.unthrow(async t => {
       const bytes = Writable.tryWriteToBytes(chunk).throw(t)
 
-      console.debug("ws ->", bytes)
+      Console.debug("ws ->", bytes)
       this.websocket.send(bytes)
 
       return Ok.void()

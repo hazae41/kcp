@@ -3,6 +3,7 @@ import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { CloseEvents, ErrorEvents, EventError, SuperEventTarget } from "@hazae41/plume";
 import { Err, Ok, Result } from "@hazae41/result";
+import { Console } from "mods/console/index.js";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
@@ -94,12 +95,12 @@ export class SecretKcpReader {
     this.parent.writer.stream.enqueue(ack.get())
 
     if (segment.serial < this.parent.recv_counter) {
-      console.debug(`Received previous KCP segment`)
+      Console.debug(`Received previous KCP segment`)
       return Ok.void()
     }
 
     if (segment.serial > this.parent.recv_counter) {
-      console.debug(`Received next KCP segment`)
+      Console.debug(`Received next KCP segment`)
       this.#buffer.set(segment.serial, segment)
       return Ok.void()
     }
@@ -110,7 +111,7 @@ export class SecretKcpReader {
     let next: KcpSegment<Opaque> | undefined
 
     while (next = this.#buffer.get(this.parent.recv_counter)) {
-      console.debug(`Unblocked next KCP segment`)
+      Console.debug(`Unblocked next KCP segment`)
       this.stream.enqueue(next.fragment)
       this.#buffer.delete(this.parent.recv_counter)
       this.parent.recv_counter++
