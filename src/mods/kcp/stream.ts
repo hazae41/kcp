@@ -1,7 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { Bytes } from "@hazae41/bytes";
 import { Cursor } from "@hazae41/cursor";
-import { Catched, Ok } from "@hazae41/result";
 import { Console } from "mods/console/index.js";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
@@ -16,12 +15,12 @@ export class KcpDuplex {
     this.#secret = new SecretKcpDuplex(stream)
   }
 
-  get readable(): ReadableStream<Opaque> {
-    return this.#secret.readable
+  get inner() {
+    return this.#secret.inner
   }
 
-  get writable(): WritableStream<Writable> {
-    return this.#secret.writable
+  get outer() {
+    return this.#secret.outer
   }
 
   get conversation() {
@@ -39,10 +38,10 @@ export class SecretKcpDuplex {
   readonly reader: SecretKcpReader
   readonly writer: SecretKcpWriter
 
-  readonly readable: ReadableStream<Opaque>
-  readonly writable: WritableStream<Writable>
+  readonly inner: ReadableWritablePair<Writable, Opaque>
+  readonly outer: ReadableWritablePair<Opaque, Writable>
 
-  readonly conversation = new Cursor(Bytes.tryRandom(4).unwrap()).tryGetUint32(true).unwrap()
+  readonly conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
 
   constructor(
     readonly stream: ReadableWritablePair<Opaque, Writable>
@@ -50,67 +49,73 @@ export class SecretKcpDuplex {
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
 
-    const read = this.reader.stream.start()
-    const write = this.writer.stream.start()
+    const preInputer = this.reader.stream.start()
+    const preOutputer = this.writer.stream.start()
 
-    this.readable = read.readable
-    this.writable = write.writable
+    const postInputer = new TransformStream<Opaque, Opaque>({})
+    const postOutputer = new TransformStream<Writable, Writable>({})
 
-    stream.readable
-      .pipeTo(read.writable)
-      .then(this.#onReadClose.bind(this))
-      .catch(this.#onReadError.bind(this))
-      .then(r => r.ignore())
-      .catch(console.error)
+    /**
+     * Inner protocol (UDP?)
+     */
+    this.inner = {
+      readable: postOutputer.readable,
+      writable: preInputer.writable
+    }
 
-    write.readable
-      .pipeTo(stream.writable)
-      .then(this.#onWriteClose.bind(this))
-      .catch(this.#onWriteError.bind(this))
-      .then(r => r.ignore())
-      .catch(console.error)
+    /**
+     * Outer protocol (SMUX?)
+     */
+    this.outer = {
+      readable: postInputer.readable,
+      writable: preOutputer.writable
+    }
+
+    preInputer.readable
+      .pipeTo(postInputer.writable)
+      .then(() => this.#onInputClose())
+      .catch(e => this.#onInputError(e))
+      .catch(() => { })
+
+    preOutputer.readable
+      .pipeTo(postOutputer.writable)
+      .then(() => this.#onOutputClose())
+      .catch(e => this.#onOutputError(e))
+      .catch(() => { })
   }
 
-  async #onReadClose() {
+  async #onInputClose() {
     Console.debug(`${this.#class.name}.onReadClose`)
 
     this.reader.stream.closed = {}
 
     await this.reader.events.emit("close", [undefined])
-
-    return Ok.void()
   }
 
-  async #onWriteClose() {
+  async #onOutputClose() {
     Console.debug(`${this.#class.name}.onWriteClose`)
 
     this.writer.stream.closed = {}
 
     await this.writer.events.emit("close", [undefined])
-
-    return Ok.void()
   }
 
-  async #onReadError(reason?: unknown) {
+  async #onInputError(reason?: unknown) {
     Console.debug(`${this.#class.name}.onReadError`, { reason })
 
     this.reader.stream.closed = { reason }
     this.writer.stream.error(reason)
 
     await this.reader.events.emit("error", [reason])
-
-    return Catched.throwOrErr(reason)
   }
 
-  async #onWriteError(reason?: unknown) {
+  async #onOutputError(reason?: unknown) {
     Console.debug(`${this.#class.name}.onWriteError`, { reason })
 
     this.writer.stream.closed = { reason }
     this.reader.stream.error(reason)
 
     await this.writer.events.emit("error", [reason])
-
-    return Catched.throwOrErr(reason)
   }
 
 }

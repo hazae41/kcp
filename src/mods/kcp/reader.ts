@@ -90,9 +90,9 @@ export class SecretKcpReader {
     const unackSerial = this.parent.recv_counter
     const fragment = new Empty()
 
-    const ack = KcpSegment.tryNew({ conversation, command, timestamp, serial, unackSerial, fragment })
+    const ack = KcpSegment.empty({ conversation, command, timestamp, serial, unackSerial, fragment })
 
-    this.parent.writer.stream.enqueue(ack.get())
+    this.parent.writer.stream.enqueue(ack)
 
     if (segment.serial < this.parent.recv_counter) {
       Console.debug(`Received previous KCP segment`)
@@ -132,9 +132,9 @@ export class SecretKcpReader {
     const unackSerial = this.parent.recv_counter
     const fragment = new Empty()
 
-    const wins = KcpSegment.tryNew<Empty>({ conversation, command, serial, unackSerial, fragment })
+    const wins = KcpSegment.empty({ conversation, command, serial, unackSerial, fragment })
 
-    this.parent.writer.stream.enqueue(wins.get())
+    this.parent.writer.stream.enqueue(wins)
 
     return Ok.void()
   }
