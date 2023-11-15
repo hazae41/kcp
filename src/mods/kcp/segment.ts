@@ -14,7 +14,6 @@ export interface KcpSegmentParams<Fragment extends Writable> {
 }
 
 export class KcpSegment<Fragment extends Writable> {
-  readonly #class = KcpSegment
 
   static readonly commands = {
     push: 81,
@@ -61,8 +60,6 @@ export class KcpSegment<Fragment extends Writable> {
      */
     readonly fragmentSize: number
   ) { }
-
-  [Symbol.dispose]() { }
 
   static empty(params: KcpSegmentParams<Empty>) {
     const { conversation, command, count, window, timestamp, serial, unackSerial, fragment } = params
