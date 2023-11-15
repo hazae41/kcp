@@ -3,14 +3,14 @@ import { Cursor } from "@hazae41/cursor";
 import { Catched, Result } from "@hazae41/result";
 
 export interface KcpSegmentParams<Fragment extends Writable> {
-  conversation: number,
-  command: number,
-  count?: number,
-  window?: number,
-  timestamp?: number,
-  serial: number,
-  unackSerial: number,
-  fragment: Fragment
+  readonly conversation: number,
+  readonly command: number,
+  readonly count?: number,
+  readonly window?: number,
+  readonly timestamp?: number,
+  readonly serial: number,
+  readonly unackSerial: number,
+  readonly fragment: Fragment
 }
 
 export class KcpSegment<Fragment extends Writable> {
