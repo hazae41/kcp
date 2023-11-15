@@ -1,6 +1,6 @@
 import { Empty, Opaque, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
-import { Catched, Result } from "@hazae41/result";
+import { Result } from "@hazae41/result";
 
 export interface KcpSegmentParams<Fragment extends Writable> {
   readonly conversation: number,
@@ -72,9 +72,7 @@ export class KcpSegment<Fragment extends Writable> {
   }
 
   static tryNew<Fragment extends Writable>(params: KcpSegmentParams<Fragment>): Result<KcpSegment<Fragment>, Error> {
-    return Result.runAndWrapSync(() => {
-      return KcpSegment.newOrThrow(params)
-    }).mapErrSync(Catched.from)
+    return Result.runAndDoubleWrapSync(() => KcpSegment.newOrThrow(params))
   }
 
   sizeOrThrow() {
