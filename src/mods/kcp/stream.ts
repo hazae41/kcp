@@ -9,10 +9,8 @@ export class KcpDuplex {
 
   readonly #secret: SecretKcpDuplex
 
-  constructor(
-    readonly stream: ReadableWritablePair<Opaque, Writable>
-  ) {
-    this.#secret = new SecretKcpDuplex(stream)
+  constructor() {
+    this.#secret = new SecretKcpDuplex()
   }
 
   get inner() {
@@ -43,9 +41,7 @@ export class SecretKcpDuplex {
 
   readonly conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
 
-  constructor(
-    readonly stream: ReadableWritablePair<Opaque, Writable>
-  ) {
+  constructor() {
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
 
