@@ -18,7 +18,7 @@ test("kcp segment", async ({ test }) => {
   const unackSerial = 0
   const fragment = new Opaque(Bytes.random(130))
 
-  const segment = KcpSegment.tryNew({ conversation, command, count, window, timestamp, serial, unackSerial, fragment }).unwrap()
+  const segment = KcpSegment.newOrThrow({ conversation, command, count, window, timestamp, serial, unackSerial, fragment })
 
   const bytes = Writable.tryWriteToBytes(segment).unwrap()
   const frame2 = Readable.tryReadFromBytes(KcpSegment, bytes).unwrap()
