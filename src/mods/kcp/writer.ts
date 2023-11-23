@@ -21,6 +21,8 @@ export class SecretKcpWriter {
   }
 
   async #onTransform(fragment: Writable) {
+    const { lowDelay = 300, highDelay = 3000 } = this.parent.params
+
     const conversation = this.parent.conversation
     const command = KcpSegment.commands.push
     const serial = this.parent.send_counter++
@@ -40,13 +42,13 @@ export class SecretKcpWriter {
 
       const delay = Date.now() - start
 
-      if (delay > 3_000) {
+      if (delay > highDelay) {
         clearInterval(retry)
         return
       }
 
       this.stream.enqueue(segment)
-    }, 300)
+    }, lowDelay)
 
     Plume.waitOrCloseOrError(this.parent.reader.events, "ack", (future: Future<void>, segment) => {
       if (segment.serial !== serial)

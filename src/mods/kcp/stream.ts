@@ -5,12 +5,19 @@ import { Console } from "mods/console/index.js";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
+export interface KcpDuplexParams {
+  readonly lowDelay?: number
+  readonly highDelay?: number
+}
+
 export class KcpDuplex {
 
   readonly #secret: SecretKcpDuplex
 
-  constructor() {
-    this.#secret = new SecretKcpDuplex()
+  constructor(
+    readonly params: KcpDuplexParams = {}
+  ) {
+    this.#secret = new SecretKcpDuplex(params)
   }
 
   get inner() {
@@ -41,7 +48,9 @@ export class SecretKcpDuplex {
 
   readonly conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
 
-  constructor() {
+  constructor(
+    readonly params: KcpDuplexParams = {}
+  ) {
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
 
