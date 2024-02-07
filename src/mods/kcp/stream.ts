@@ -6,6 +6,11 @@ import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
 export interface KcpDuplexParams {
+  /**
+   * Conversation ID (Uint32) (random if undefined)
+   */
+  readonly conversation?: number
+
   readonly lowDelay?: number
   readonly highDelay?: number
 }
@@ -46,11 +51,17 @@ export class SecretKcpDuplex {
   readonly inner: ReadableWritablePair<Writable, Opaque>
   readonly outer: ReadableWritablePair<Opaque, Writable>
 
-  readonly conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
+  readonly conversation: number
 
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
+    const {
+      conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
+    } = this.params
+
+    this.conversation = conversation
+
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
 
