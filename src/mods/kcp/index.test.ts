@@ -1,6 +1,5 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { SuperTransformStream } from "@hazae41/cascade";
-import { Future } from "@hazae41/future";
 import { test } from "@hazae41/phobos";
 import { relative, resolve } from "path";
 import { KcpDuplex } from "./stream.js";
@@ -43,11 +42,10 @@ function pipeToDummy(kcp: { outer: ReadableWritablePair<Opaque, Writable> }) {
 
 class Dummy extends EventTarget {
   readonly inner: ReadableWritablePair<Writable, Opaque>
+  readonly outer: ReadableWritablePair<Opaque, Writable>
 
   readonly input: SuperTransformStream<Opaque, Opaque>
   readonly output: SuperTransformStream<Writable, Writable>
-
-  #start = new Future<void>()
 
   #started = false
   #closed = false
@@ -67,12 +65,17 @@ class Dummy extends EventTarget {
     const preInputer = this.input.start()
     const postOutputer = this.output.start()
 
-    const postInputer = { writable: new WritableStream<Opaque>({}) }
-    const preOutputer = { readable: new ReadableStream<Writable>({}) }
+    const postInputer = new TransformStream<Opaque, Opaque>({})
+    const preOutputer = new TransformStream<Writable, Writable>({})
 
     this.inner = {
       readable: postOutputer.readable,
       writable: preInputer.writable
+    }
+
+    this.outer = {
+      readable: postInputer.readable,
+      writable: preOutputer.writable
     }
 
     preInputer.readable
