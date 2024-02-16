@@ -189,31 +189,29 @@ class Dummy extends EventTarget {
 
 }
 
-test("kcp", async () => {
-  const forward = new TransformStream<Writable, Opaque>({ transform: (chunk, controller) => controller.enqueue(Opaque.writeFromOrThrow(chunk)) })
-  const backward = new TransformStream<Writable, Opaque>({ transform: (chunk, controller) => controller.enqueue(Opaque.writeFromOrThrow(chunk)) })
+const forward = new TransformStream<Writable, Opaque>({ transform: (chunk, controller) => controller.enqueue(Opaque.writeFromOrThrow(chunk)) })
+const backward = new TransformStream<Writable, Opaque>({ transform: (chunk, controller) => controller.enqueue(Opaque.writeFromOrThrow(chunk)) })
 
-  const rawA = { outer: { readable: forward.readable, writable: backward.writable } }
-  const rawB = { outer: { readable: backward.readable, writable: forward.writable } }
+const rawA = { outer: { readable: forward.readable, writable: backward.writable } }
+const rawB = { outer: { readable: backward.readable, writable: forward.writable } }
 
-  const kcpA = pipeToKcp(rawA)
-  const kcpB = pipeToKcp(rawB)
+const kcpA = pipeToKcp(rawA)
+const kcpB = pipeToKcp(rawB)
 
-  const dummyA = pipeToDummy(kcpA)
-  const dummyB = pipeToDummy(kcpB)
+const dummyA = pipeToDummy(kcpA)
+const dummyB = pipeToDummy(kcpB)
 
-  dummyB.addEventListener("message", (event) => {
-    const msgEvent = event as MessageEvent<Opaque>
-    console.log("b", msgEvent.data.bytes)
-  })
-
-  dummyA.addEventListener("message", (event) => {
-    const msgEvent = event as MessageEvent<Opaque>
-    console.log("a", msgEvent.data.bytes)
-  })
-
-  dummyA.send(new Opaque(new Uint8Array([1, 2, 3])))
-  dummyB.send(new Opaque(new Uint8Array([4, 5, 6])))
+dummyB.addEventListener("message", (event) => {
+  const msgEvent = event as MessageEvent<Opaque>
+  console.log("b", msgEvent.data.bytes)
 })
+
+dummyA.addEventListener("message", (event) => {
+  const msgEvent = event as MessageEvent<Opaque>
+  console.log("a", msgEvent.data.bytes)
+})
+
+dummyA.send(new Opaque(new Uint8Array([1, 2, 3])))
+dummyB.send(new Opaque(new Uint8Array([4, 5, 6])))
 
 ```
