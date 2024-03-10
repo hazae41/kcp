@@ -43,7 +43,7 @@ export class SecretKcpReader {
   constructor(
     readonly parent: SecretKcpDuplex
   ) {
-    parent.input.events.on("message", async chunk => {
+    parent.subduplex.input.events.on("message", async chunk => {
       await this.#onMessage(chunk)
       return new None()
     })
@@ -82,7 +82,7 @@ export class SecretKcpReader {
 
     const ack = KcpSegment.empty({ conversation, command, timestamp, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(ack)
+    await this.parent.subduplex.output.enqueue(ack)
 
     if (segment.serial < this.parent.recv_counter) {
       Console.debug(`Received previous KCP segment`)
@@ -95,7 +95,7 @@ export class SecretKcpReader {
       return
     }
 
-    await this.parent.input.enqueue(segment.fragment)
+    await this.parent.subduplex.input.enqueue(segment.fragment)
 
     this.parent.recv_counter++
 
@@ -104,7 +104,7 @@ export class SecretKcpReader {
     while (next = this.#buffer.get(this.parent.recv_counter)) {
       Console.debug(`Unblocked next KCP segment`)
 
-      await this.parent.input.enqueue(next.fragment)
+      await this.parent.subduplex.input.enqueue(next.fragment)
       this.#buffer.delete(this.parent.recv_counter)
 
       this.parent.recv_counter++
@@ -124,7 +124,7 @@ export class SecretKcpReader {
 
     const wins = KcpSegment.empty({ conversation, command, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(wins)
+    await this.parent.subduplex.output.enqueue(wins)
   }
 
 }

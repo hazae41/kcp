@@ -10,7 +10,7 @@ export class SecretKcpWriter {
   constructor(
     readonly parent: SecretKcpDuplex,
   ) {
-    this.parent.output.events.on("message", async chunk => {
+    this.parent.subduplex.output.events.on("message", async chunk => {
       await this.#onMessage(chunk)
       return new None()
     })
@@ -26,12 +26,12 @@ export class SecretKcpWriter {
 
     const segment = KcpSegment.newOrThrow({ conversation, command, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(segment)
+    await this.parent.subduplex.output.enqueue(segment)
 
     const start = Date.now()
 
     const retry = setInterval(async () => {
-      if (this.parent.closed) {
+      if (this.parent.subduplex.closed) {
         clearInterval(retry)
         return
       }
@@ -43,7 +43,7 @@ export class SecretKcpWriter {
         return
       }
 
-      await this.parent.output.enqueue(segment)
+      await this.parent.subduplex.output.enqueue(segment)
     }, lowDelay)
 
     Plume.waitOrCloseOrError(this.parent.reader.events, "ack", (future: Future<void>, segment) => {

@@ -32,11 +32,11 @@ export class KcpDuplex {
   }
 
   get inner() {
-    return this.#secret.inner
+    return this.#secret.subduplex.inner
   }
 
   get outer() {
-    return this.#secret.outer
+    return this.#secret.subduplex.outer
   }
 
   get conversation() {
@@ -81,14 +81,6 @@ export class SecretKcpDuplex {
       await this.events.emit("error", [error])
       return new None()
     })
-  }
-
-  get inner() {
-    return this.subduplex.inner
-  }
-
-  get outer() {
-    return this.subduplex.outer
   }
 
 }
