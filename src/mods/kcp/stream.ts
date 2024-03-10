@@ -77,8 +77,8 @@ export class SecretKcpDuplex {
       return new None()
     })
 
-    this.subduplex.events.on("error", async (error) => {
-      await this.events.emit("error", [error])
+    this.subduplex.events.on("error", async (reason) => {
+      await this.events.emit("error", [reason])
       return new None()
     })
   }
