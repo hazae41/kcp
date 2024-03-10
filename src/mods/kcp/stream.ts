@@ -80,6 +80,9 @@ export class SecretKcpDuplex {
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
+    this.kcp.events.on("close", () => this.events.emit("close"))
+    this.kcp.events.on("error", e => this.events.emit("error", e))
+
     const {
       conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
     } = this.params
@@ -88,9 +91,6 @@ export class SecretKcpDuplex {
 
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
-
-    this.kcp.events.on("close", () => this.events.emit("close"))
-    this.kcp.events.on("error", e => this.events.emit("error", e))
   }
 
   get inner() {
