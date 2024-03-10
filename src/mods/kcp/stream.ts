@@ -2,6 +2,7 @@ import { Opaque, Writable } from "@hazae41/binary";
 import { Bytes } from "@hazae41/bytes";
 import { HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
+import { SuperEventTarget } from "@hazae41/plume";
 import { SecretKcpReader } from "./reader.js";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpWriter } from "./writer.js";
@@ -16,22 +17,20 @@ export interface KcpDuplexParams {
   readonly highDelay?: number
 }
 
-export type KcpDuplexEvents = HalfDuplexEvents & {
-  ack: (segment: KcpSegment<Opaque>) => void
-}
-
 export class KcpDuplex {
 
   readonly #secret: SecretKcpDuplex
+
+  readonly events = new SuperEventTarget<HalfDuplexEvents>()
 
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
     this.#secret = new SecretKcpDuplex(params)
-  }
 
-  get events() {
-    return this.#secret.events
+    this.#secret.events.on("open", () => this.events.emit("open"))
+    this.#secret.events.on("close", () => this.events.emit("close"))
+    this.#secret.events.on("error", reason => this.events.emit("error", reason))
   }
 
   get inner() {
@@ -48,7 +47,11 @@ export class KcpDuplex {
 
 }
 
-export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, KcpDuplexEvents> {
+export type SecretKcpDuplexEvents = HalfDuplexEvents & {
+  ack: (segment: KcpSegment<Opaque>) => void
+}
+
+export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, SecretKcpDuplexEvents> {
 
   readonly reader: SecretKcpReader
   readonly writer: SecretKcpWriter
