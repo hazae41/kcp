@@ -26,11 +26,11 @@ export class SecretKcpWriter {
 
     const segment = KcpSegment.newOrThrow({ conversation, command, serial, unackSerial, fragment })
 
-    this.parent.output.enqueue(segment)
+    await this.parent.output.enqueue(segment)
 
     const start = Date.now()
 
-    const retry = setInterval(() => {
+    const retry = setInterval(async () => {
       if (this.parent.closed) {
         clearInterval(retry)
         return
@@ -43,7 +43,7 @@ export class SecretKcpWriter {
         return
       }
 
-      this.parent.output.enqueue(segment)
+      await this.parent.output.enqueue(segment)
     }, lowDelay)
 
     Plume.waitOrCloseOrError(this.parent.reader.events, "ack", (future: Future<void>, segment) => {
