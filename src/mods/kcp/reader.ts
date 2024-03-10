@@ -43,8 +43,8 @@ export class SecretKcpReader {
   constructor(
     readonly parent: SecretKcpDuplex
   ) {
-    parent.input.events.on("message", chunk => {
-      this.#onMessage(chunk)
+    parent.input.events.on("message", async chunk => {
+      await this.#onMessage(chunk)
       return new None()
     })
   }

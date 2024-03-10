@@ -10,8 +10,8 @@ export class SecretKcpWriter {
   constructor(
     readonly parent: SecretKcpDuplex,
   ) {
-    this.parent.output.events.on("message", chunk => {
-      this.#onMessage(chunk)
+    this.parent.output.events.on("message", async chunk => {
+      await this.#onMessage(chunk)
       return new None()
     })
   }
