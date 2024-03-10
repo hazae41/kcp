@@ -1,7 +1,7 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
-import { SuperTransformStream } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
+import { None } from "@hazae41/option";
+import { SuperEventTarget } from "@hazae41/plume";
 import { Console } from "mods/console/index.js";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
@@ -30,7 +30,7 @@ export class UnknownKcpCommandError extends Error {
 
 }
 
-export type SecretKcpReaderEvents = CloseEvents & ErrorEvents & {
+export type SecretKcpReaderEvents = {
   ack: (segment: KcpSegment<Opaque>) => void
 }
 
@@ -38,19 +38,18 @@ export class SecretKcpReader {
 
   readonly events = new SuperEventTarget<SecretKcpReaderEvents>()
 
-  readonly stream: SuperTransformStream<Opaque, Opaque>
-
   readonly #buffer = new Map<number, KcpSegment<Opaque>>()
 
   constructor(
     readonly parent: SecretKcpDuplex
   ) {
-    this.stream = new SuperTransformStream({
-      transform: this.#onTransform.bind(this)
+    parent.input.events.on("message", chunk => {
+      this.#onBytes(chunk)
+      return new None()
     })
   }
 
-  async #onTransform(chunk: Opaque) {
+  async #onBytes(chunk: Opaque) {
     const cursor = new Cursor(chunk.bytes)
 
     while (cursor.remaining)
@@ -83,7 +82,7 @@ export class SecretKcpReader {
 
     const ack = KcpSegment.empty({ conversation, command, timestamp, serial, unackSerial, fragment })
 
-    this.parent.writer.stream.enqueue(ack)
+    this.parent.output.enqueue(ack)
 
     if (segment.serial < this.parent.recv_counter) {
       Console.debug(`Received previous KCP segment`)
@@ -96,14 +95,14 @@ export class SecretKcpReader {
       return
     }
 
-    this.stream.enqueue(segment.fragment)
+    this.parent.input.enqueue(segment.fragment)
     this.parent.recv_counter++
 
     let next: KcpSegment<Opaque> | undefined
 
     while (next = this.#buffer.get(this.parent.recv_counter)) {
       Console.debug(`Unblocked next KCP segment`)
-      this.stream.enqueue(next.fragment)
+      this.parent.input.enqueue(next.fragment)
       this.#buffer.delete(this.parent.recv_counter)
       this.parent.recv_counter++
     }
@@ -122,7 +121,7 @@ export class SecretKcpReader {
 
     const wins = KcpSegment.empty({ conversation, command, serial, unackSerial, fragment })
 
-    this.parent.writer.stream.enqueue(wins)
+    this.parent.output.enqueue(wins)
   }
 
 }

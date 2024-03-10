@@ -1,26 +1,22 @@
 import { Writable } from "@hazae41/binary";
-import { SuperTransformStream } from "@hazae41/cascade";
 import { Future } from "@hazae41/future";
 import { None } from "@hazae41/option";
-import { CloseEvents, ErrorEvents, Plume, SuperEventTarget } from "@hazae41/plume";
+import { Plume } from "@hazae41/plume";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
 export class SecretKcpWriter {
 
-  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
-
-  readonly stream: SuperTransformStream<Writable, Writable>
-
   constructor(
     readonly parent: SecretKcpDuplex,
   ) {
-    this.stream = new SuperTransformStream({
-      transform: this.#onTransform.bind(this)
+    this.parent.output.events.on("message", chunk => {
+      this.#onMessage(chunk)
+      return new None()
     })
   }
 
-  async #onTransform(fragment: Writable) {
+  async #onMessage(fragment: Writable) {
     const { lowDelay = 300, highDelay = 3000 } = this.parent.params
 
     const conversation = this.parent.conversation
@@ -30,12 +26,12 @@ export class SecretKcpWriter {
 
     const segment = KcpSegment.newOrThrow({ conversation, command, serial, unackSerial, fragment })
 
-    this.stream.enqueue(segment)
+    this.parent.output.enqueue(segment)
 
     const start = Date.now()
 
     const retry = setInterval(() => {
-      if (this.stream.closed) {
+      if (this.parent.closed) {
         clearInterval(retry)
         return
       }
@@ -47,7 +43,7 @@ export class SecretKcpWriter {
         return
       }
 
-      this.stream.enqueue(segment)
+      this.parent.output.enqueue(segment)
     }, lowDelay)
 
     Plume.waitOrCloseOrError(this.parent.reader.events, "ack", (future: Future<void>, segment) => {
