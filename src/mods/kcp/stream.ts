@@ -30,7 +30,7 @@ export class KcpDuplex {
 
     this.#secret.events.on("open", () => this.events.emit("open"))
     this.#secret.events.on("close", () => this.events.emit("close"))
-    this.#secret.events.on("error", reason => this.events.emit("error", reason))
+    this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
   get inner() {
