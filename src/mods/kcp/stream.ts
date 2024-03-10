@@ -1,8 +1,9 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { Bytes } from "@hazae41/bytes";
-import { HalfDuplex } from "@hazae41/cascade";
+import { HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { SecretKcpReader } from "./reader.js";
+import { KcpSegment } from "./segment.js";
 import { SecretKcpWriter } from "./writer.js";
 
 export interface KcpDuplexParams {
@@ -13,6 +14,10 @@ export interface KcpDuplexParams {
 
   readonly lowDelay?: number
   readonly highDelay?: number
+}
+
+export type KcpDuplexEvents = HalfDuplexEvents & {
+  ack: (segment: KcpSegment<Opaque>) => void
 }
 
 export class KcpDuplex {
@@ -26,15 +31,15 @@ export class KcpDuplex {
   }
 
   get events() {
-    return this.#secret.subduplex.events
+    return this.#secret.events
   }
 
   get inner() {
-    return this.#secret.subduplex.inner
+    return this.#secret.inner
   }
 
   get outer() {
-    return this.#secret.subduplex.outer
+    return this.#secret.outer
   }
 
   get conversation() {
@@ -43,22 +48,21 @@ export class KcpDuplex {
 
 }
 
-export class SecretKcpDuplex {
-  readonly #class = SecretKcpDuplex
-
-  send_counter = 0
-  recv_counter = 0
-
-  readonly subduplex = new HalfDuplex<Opaque, Writable>()
+export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, KcpDuplexEvents> {
 
   readonly reader: SecretKcpReader
   readonly writer: SecretKcpWriter
 
   readonly conversation: number
 
+  send_counter = 0
+  recv_counter = 0
+
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
+    super()
+
     const {
       conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
     } = this.params
