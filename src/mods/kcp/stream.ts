@@ -28,7 +28,6 @@ export class KcpDuplex {
   ) {
     this.#secret = new SecretKcpDuplex(params)
 
-    this.#secret.events.on("open", () => this.events.emit("open"))
     this.#secret.events.on("close", () => this.events.emit("close"))
     this.#secret.events.on("error", e => this.events.emit("error", e))
   }
@@ -51,7 +50,11 @@ export type SecretKcpDuplexEvents = HalfDuplexEvents & {
   ack: (segment: KcpSegment<Opaque>) => void
 }
 
-export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, SecretKcpDuplexEvents> {
+export class SecretKcpDuplex {
+
+  readonly kcp = new HalfDuplex<Opaque, Writable>()
+
+  readonly events = new SuperEventTarget<SecretKcpDuplexEvents>()
 
   readonly reader: SecretKcpReader
   readonly writer: SecretKcpWriter
@@ -64,8 +67,6 @@ export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, SecretKcpDuple
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
-    super()
-
     const {
       conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
     } = this.params
@@ -74,6 +75,29 @@ export class SecretKcpDuplex extends HalfDuplex<Opaque, Writable, SecretKcpDuple
 
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
+
+    this.kcp.events.on("close", () => this.events.emit("close"))
+    this.kcp.events.on("error", e => this.events.emit("error", e))
+  }
+
+  get inner() {
+    return this.kcp.inner
+  }
+
+  get outer() {
+    return this.kcp.outer
+  }
+
+  get input() {
+    return this.kcp.input
+  }
+
+  get output() {
+    return this.kcp.output
+  }
+
+  get closed() {
+    return this.kcp.closed
   }
 
 }
