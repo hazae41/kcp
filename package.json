@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/kcp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": "hazae41",
   "license": "MIT",
   "description": "Zero-copy KCP protocol for the web",
