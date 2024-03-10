@@ -48,6 +48,14 @@ export class KcpDuplex {
     return this.#secret.closed
   }
 
+  async error(reason?: unknown) {
+    await this.#secret.error(reason)
+  }
+
+  async close() {
+    await this.#secret.close()
+  }
+
 }
 
 export type SecretKcpDuplexEvents =
@@ -103,6 +111,14 @@ export class SecretKcpDuplex {
 
   get closed() {
     return this.kcp.closed
+  }
+
+  async error(reason?: unknown) {
+    await this.kcp.error(reason)
+  }
+
+  async close() {
+    await this.kcp.close()
   }
 
 }
