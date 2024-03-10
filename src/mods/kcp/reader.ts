@@ -44,12 +44,12 @@ export class SecretKcpReader {
     readonly parent: SecretKcpDuplex
   ) {
     parent.input.events.on("message", chunk => {
-      this.#onBytes(chunk)
+      this.#onMessage(chunk)
       return new None()
     })
   }
 
-  async #onBytes(chunk: Opaque) {
+  async #onMessage(chunk: Opaque) {
     const cursor = new Cursor(chunk.bytes)
 
     while (cursor.remaining)
