@@ -32,6 +32,10 @@ export class KcpDuplex {
     this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
+  get conversation() {
+    return this.#secret.conversation
+  }
+
   get inner() {
     return this.#secret.inner
   }
@@ -40,8 +44,8 @@ export class KcpDuplex {
     return this.#secret.outer
   }
 
-  get conversation() {
-    return this.#secret.conversation
+  get closed() {
+    return this.#secret.closed
   }
 
 }
