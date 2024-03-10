@@ -2,8 +2,6 @@ import { Opaque, Writable } from "@hazae41/binary";
 import { Bytes } from "@hazae41/bytes";
 import { HalfDuplex } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
-import { None } from "@hazae41/option";
-import { CloseEvents, ErrorEvents, SuperEventTarget } from "@hazae41/plume";
 import { SecretKcpReader } from "./reader.js";
 import { SecretKcpWriter } from "./writer.js";
 
@@ -28,7 +26,7 @@ export class KcpDuplex {
   }
 
   get events() {
-    return this.#secret.events
+    return this.#secret.subduplex.events
   }
 
   get inner() {
@@ -53,8 +51,6 @@ export class SecretKcpDuplex {
 
   readonly subduplex = new HalfDuplex<Opaque, Writable>()
 
-  readonly events = new SuperEventTarget<CloseEvents & ErrorEvents>()
-
   readonly reader: SecretKcpReader
   readonly writer: SecretKcpWriter
 
@@ -71,16 +67,6 @@ export class SecretKcpDuplex {
 
     this.reader = new SecretKcpReader(this)
     this.writer = new SecretKcpWriter(this)
-
-    this.subduplex.events.on("close", async () => {
-      await this.events.emit("close", [undefined])
-      return new None()
-    })
-
-    this.subduplex.events.on("error", async (reason) => {
-      await this.events.emit("error", [reason])
-      return new None()
-    })
   }
 
 }
