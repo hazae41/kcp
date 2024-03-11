@@ -32,6 +32,14 @@ export class KcpDuplex {
     this.#secret.events.on("error", e => this.events.emit("error", e))
   }
 
+  [Symbol.dispose]() {
+    this.close().catch(console.error)
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close()
+  }
+
   get conversation() {
     return this.#secret.conversation
   }
@@ -42,6 +50,10 @@ export class KcpDuplex {
 
   get outer() {
     return this.#secret.outer
+  }
+
+  get closing() {
+    return this.#secret.closing
   }
 
   get closed() {
@@ -93,6 +105,14 @@ export class SecretKcpDuplex {
     this.writer = new SecretKcpWriter(this)
   }
 
+  [Symbol.dispose]() {
+    this.close().catch(console.error)
+  }
+
+  async [Symbol.asyncDispose]() {
+    await this.close()
+  }
+
   get inner() {
     return this.kcp.inner
   }
@@ -107,6 +127,10 @@ export class SecretKcpDuplex {
 
   get output() {
     return this.kcp.output
+  }
+
+  get closing() {
+    return this.kcp.closing
   }
 
   get closed() {
