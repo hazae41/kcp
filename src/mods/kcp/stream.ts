@@ -77,8 +77,7 @@ export type SecretKcpDuplexEvents =
 
 export class SecretKcpDuplex {
 
-  readonly kcp = new FullDuplex<Opaque, Writable>()
-
+  readonly duplex = new FullDuplex<Opaque, Writable>()
   readonly events = new SuperEventTarget<SecretKcpDuplexEvents>()
 
   readonly reader: SecretKcpReader
@@ -92,8 +91,8 @@ export class SecretKcpDuplex {
   constructor(
     readonly params: KcpDuplexParams = {}
   ) {
-    this.kcp.events.on("close", () => this.events.emit("close"))
-    this.kcp.events.on("error", e => this.events.emit("error", e))
+    this.duplex.events.on("close", () => this.events.emit("close"))
+    this.duplex.events.on("error", e => this.events.emit("error", e))
 
     const {
       conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
@@ -114,35 +113,35 @@ export class SecretKcpDuplex {
   }
 
   get inner() {
-    return this.kcp.inner
+    return this.duplex.inner
   }
 
   get outer() {
-    return this.kcp.outer
+    return this.duplex.outer
   }
 
   get input() {
-    return this.kcp.input
+    return this.duplex.input
   }
 
   get output() {
-    return this.kcp.output
+    return this.duplex.output
   }
 
   get closing() {
-    return this.kcp.closing
+    return this.duplex.closing
   }
 
   get closed() {
-    return this.kcp.closed
+    return this.duplex.closed
   }
 
   async error(reason?: unknown) {
-    await this.kcp.error(reason)
+    await this.duplex.error(reason)
   }
 
   async close() {
-    await this.kcp.close()
+    await this.duplex.close()
   }
 
 }
