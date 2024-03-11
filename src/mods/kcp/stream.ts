@@ -94,8 +94,12 @@ export class SecretKcpDuplex {
     this.writer = new SecretKcpWriter(this)
 
     this.duplex = new FullDuplex<Opaque, Writable>({
-      input: { message: m => this.reader.onMessage(m) },
-      output: { message: m => this.writer.onMessage(m) },
+      input: {
+        message: m => this.reader.onMessage(m)
+      },
+      output: {
+        message: m => this.writer.onMessage(m)
+      },
       close: () => this.#onDuplexClose(),
       error: e => this.#onDuplexError(e)
     })
