@@ -1,6 +1,5 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
-import { None } from "@hazae41/option";
 import { Console } from "mods/console/index.js";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
@@ -39,14 +38,9 @@ export class SecretKcpReader {
 
   constructor(
     readonly parent: SecretKcpDuplex
-  ) {
-    parent.input.events.on("message", async chunk => {
-      await this.#onMessage(chunk)
-      return new None()
-    })
-  }
+  ) { }
 
-  async #onMessage(chunk: Opaque) {
+  async onMessage(chunk: Opaque) {
     const cursor = new Cursor(chunk.bytes)
 
     while (cursor.remaining)
@@ -74,54 +68,60 @@ export class SecretKcpReader {
     const command = KcpSegment.commands.ack
     const timestamp = segment.timestamp
     const serial = segment.serial
-    const unackSerial = this.parent.recv_counter
+    const unackSerial = this.parent.recvCounter
     const fragment = new Empty()
 
     const ack = KcpSegment.empty({ conversation, command, timestamp, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(ack)
+    this.parent.output.enqueue(ack)
 
-    if (segment.serial < this.parent.recv_counter) {
+    if (segment.serial < this.parent.recvCounter) {
       Console.debug(`Received previous KCP segment`)
       return
     }
 
-    if (segment.serial > this.parent.recv_counter) {
+    if (segment.serial > this.parent.recvCounter) {
       Console.debug(`Received next KCP segment`)
       this.#buffer.set(segment.serial, segment)
       return
     }
 
-    await this.parent.input.enqueue(segment.fragment)
+    this.parent.input.enqueue(segment.fragment)
 
-    this.parent.recv_counter++
+    this.parent.recvCounter++
 
     let next: KcpSegment<Opaque> | undefined
 
-    while (next = this.#buffer.get(this.parent.recv_counter)) {
+    while (next = this.#buffer.get(this.parent.recvCounter)) {
       Console.debug(`Unblocked next KCP segment`)
 
-      await this.parent.input.enqueue(next.fragment)
-      this.#buffer.delete(this.parent.recv_counter)
+      this.parent.input.enqueue(next.fragment)
+      this.#buffer.delete(this.parent.recvCounter)
 
-      this.parent.recv_counter++
+      this.parent.recvCounter++
     }
   }
 
   async #onAckSegment(segment: KcpSegment<Opaque>) {
-    await this.parent.events.emit("ack", segment)
+    const future = this.parent.resolveOnAckBySerial.get(segment.serial)
+
+    if (future == null)
+      return
+    this.parent.resolveOnAckBySerial.delete(segment.serial)
+
+    future.resolve()
   }
 
   async #onWaskSegment(segment: KcpSegment<Opaque>) {
     const conversation = this.parent.conversation
     const command = KcpSegment.commands.wins
     const serial = 0
-    const unackSerial = this.parent.recv_counter
+    const unackSerial = this.parent.recvCounter
     const fragment = new Empty()
 
     const wins = KcpSegment.empty({ conversation, command, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(wins)
+    this.parent.output.enqueue(wins)
   }
 
 }

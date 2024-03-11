@@ -1,6 +1,5 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { HalfDuplex } from "@hazae41/cascade";
-import { None } from "@hazae41/option";
 import { test } from "@hazae41/phobos";
 import { relative, resolve } from "path";
 import { KcpDuplex } from "./stream.js";
@@ -27,8 +26,8 @@ function pipeToKcp(raw: { outer: ReadableWritablePair<Opaque, Writable> }): { ou
   return kcp
 }
 
-function pipeToDummy(kcp: { outer: ReadableWritablePair<Opaque, Writable> }) {
-  const dummy = new Dummy()
+function pipeToDummy(prefix: string, kcp: { outer: ReadableWritablePair<Opaque, Writable> }) {
+  const dummy = new Dummy(prefix)
 
   kcp.outer.readable
     .pipeTo(dummy.inner.writable)
@@ -43,8 +42,14 @@ function pipeToDummy(kcp: { outer: ReadableWritablePair<Opaque, Writable> }) {
 
 class Dummy extends HalfDuplex<Opaque, Writable> {
 
-  constructor() {
-    super()
+  constructor(
+    readonly prefix: string
+  ) {
+    super({ input: { message: m => this.#onMessage(m) } })
+  }
+
+  #onMessage(data: Opaque) {
+    console.log(this.prefix, data.bytes)
   }
 
   send(data: Writable) {
@@ -63,18 +68,8 @@ test("kcp", async () => {
   const kcpA = pipeToKcp(rawA)
   const kcpB = pipeToKcp(rawB)
 
-  const dummyA = pipeToDummy(kcpA)
-  const dummyB = pipeToDummy(kcpB)
-
-  dummyB.input.events.on("message", (data) => {
-    console.log("b", data.bytes)
-    return new None()
-  })
-
-  dummyA.input.events.on("message", (data) => {
-    console.log("a", data.bytes)
-    return new None()
-  })
+  const dummyA = pipeToDummy("a", kcpA)
+  const dummyB = pipeToDummy("b", kcpB)
 
   dummyA.send(new Opaque(new Uint8Array([1, 2, 3])))
   dummyB.send(new Opaque(new Uint8Array([4, 5, 6])))

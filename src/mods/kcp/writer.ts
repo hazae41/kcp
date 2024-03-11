@@ -1,7 +1,5 @@
 import { Writable } from "@hazae41/binary";
 import { Future } from "@hazae41/future";
-import { None } from "@hazae41/option";
-import { Plume } from "@hazae41/plume";
 import { KcpSegment } from "./segment.js";
 import { SecretKcpDuplex } from "./stream.js";
 
@@ -9,28 +7,23 @@ export class SecretKcpWriter {
 
   constructor(
     readonly parent: SecretKcpDuplex,
-  ) {
-    this.parent.output.events.on("message", async chunk => {
-      await this.#onMessage(chunk)
-      return new None()
-    })
-  }
+  ) { }
 
-  async #onMessage(fragment: Writable) {
+  async onMessage(fragment: Writable) {
     const { lowDelay = 300, highDelay = 3000 } = this.parent.params
 
     const conversation = this.parent.conversation
     const command = KcpSegment.commands.push
-    const serial = this.parent.send_counter++
-    const unackSerial = this.parent.recv_counter
+    const serial = this.parent.sendCounter++
+    const unackSerial = this.parent.recvCounter
 
     const segment = KcpSegment.newOrThrow({ conversation, command, serial, unackSerial, fragment })
 
-    await this.parent.output.enqueue(segment)
+    this.parent.output.enqueue(segment)
 
     const start = Date.now()
 
-    const retry = setInterval(async () => {
+    const retry = setInterval(() => {
       if (this.parent.closed) {
         clearInterval(retry)
         return
@@ -43,15 +36,19 @@ export class SecretKcpWriter {
         return
       }
 
-      await this.parent.output.enqueue(segment)
+      this.parent.output.enqueue(segment)
     }, lowDelay)
 
-    Plume.waitOrCloseOrError(this.parent.events, "ack", (future: Future<void>, segment) => {
-      if (segment.serial !== serial)
-        return new None()
-      future.resolve()
-      return new None()
-    }).catch(() => { }).finally(() => clearInterval(retry))
+    const { rejectOnClose, rejectOnError } = this.parent
+
+    const resolveOnAck = new Future<void>()
+
+    Promise
+      .race([resolveOnAck.promise, rejectOnClose.promise, rejectOnError.promise])
+      .catch(() => { })
+      .finally(() => clearInterval(retry))
+
+    this.parent.resolveOnAckBySerial.set(serial, resolveOnAck)
   }
 
 }
