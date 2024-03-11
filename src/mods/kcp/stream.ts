@@ -1,6 +1,6 @@
 import { Opaque, Writable } from "@hazae41/binary";
 import { Bytes } from "@hazae41/bytes";
-import { CloseEvents, ErrorEvents, HalfDuplex, HalfDuplexEvents } from "@hazae41/cascade";
+import { CloseEvents, ErrorEvents, FullDuplex, HalfDuplexEvents } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { SuperEventTarget } from "@hazae41/plume";
 import { SecretKcpReader } from "./reader.js";
@@ -65,7 +65,7 @@ export type SecretKcpDuplexEvents =
 
 export class SecretKcpDuplex {
 
-  readonly kcp = new HalfDuplex<Opaque, Writable>()
+  readonly kcp = new FullDuplex<Opaque, Writable>()
 
   readonly events = new SuperEventTarget<SecretKcpDuplexEvents>()
 
