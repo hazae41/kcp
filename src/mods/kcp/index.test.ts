@@ -45,7 +45,7 @@ class Dummy extends HalfDuplex<Opaque, Writable> {
   constructor(
     readonly prefix: string
   ) {
-    super({ input: { message: m => this.#onMessage(m) } })
+    super({ input: { write: m => this.#onMessage(m) } })
   }
 
   #onMessage(data: Opaque) {
