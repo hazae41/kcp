@@ -73,8 +73,8 @@ export class SecretKcpDuplex {
 
   readonly conversation: number
 
-  readonly rejectOnClose = new Future<never>()
-  readonly rejectOnError = new Future<never>()
+  readonly resolveOnClose = new Future<void>()
+  readonly resolveOnError = new Future<unknown>()
 
   readonly resolveOnAckBySerial = new Map<number, Future<void>>()
 
@@ -134,12 +134,12 @@ export class SecretKcpDuplex {
   }
 
   async #onDuplexClose() {
-    this.rejectOnClose.reject(new Error("Closed"))
+    this.resolveOnClose.resolve()
     await this.params.close?.call(undefined)
   }
 
   async #onDuplexError(cause?: unknown) {
-    this.rejectOnError.reject(new Error("Errored", { cause }))
+    this.resolveOnError.resolve(cause)
     await this.params.error?.call(undefined, cause)
   }
 

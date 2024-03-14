@@ -39,13 +39,12 @@ export class SecretKcpWriter {
       this.parent.output.enqueue(segment)
     }, lowDelay)
 
-    const { rejectOnClose, rejectOnError } = this.parent
+    const { resolveOnClose, resolveOnError } = this.parent
 
     const resolveOnAck = new Future<void>()
 
     Promise
-      .race([resolveOnAck.promise, rejectOnClose.promise, rejectOnError.promise])
-      .catch(() => { })
+      .race([resolveOnAck.promise, resolveOnClose.promise, resolveOnError.promise])
       .finally(() => clearInterval(retry))
 
     this.parent.resolveOnAckBySerial.set(serial, resolveOnAck)
