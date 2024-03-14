@@ -40,7 +40,7 @@ export class SecretKcpReader {
     readonly parent: SecretKcpDuplex
   ) { }
 
-  async onMessage(chunk: Opaque) {
+  async onWrite(chunk: Opaque) {
     const cursor = new Cursor(chunk.bytes)
 
     while (cursor.remaining)

@@ -95,10 +95,10 @@ export class SecretKcpDuplex {
 
     this.duplex = new FullDuplex<Opaque, Writable>({
       input: {
-        write: m => this.reader.onMessage(m)
+        write: m => this.reader.onWrite(m)
       },
       output: {
-        write: m => this.writer.onMessage(m)
+        write: m => this.writer.onWrite(m)
       },
       close: () => this.#onDuplexClose(),
       error: e => this.#onDuplexError(e)

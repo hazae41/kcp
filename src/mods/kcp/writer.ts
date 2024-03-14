@@ -9,7 +9,7 @@ export class SecretKcpWriter {
     readonly parent: SecretKcpDuplex,
   ) { }
 
-  async onMessage(fragment: Writable) {
+  async onWrite(fragment: Writable) {
     const { lowDelay = 300, highDelay = 3000 } = this.parent.params
 
     const conversation = this.parent.conversation
