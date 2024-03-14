@@ -73,10 +73,10 @@ export class SecretKcpDuplex {
 
   readonly conversation: number
 
-  readonly resolveOnAckBySerial = new Map<number, Future<void>>()
-
   readonly rejectOnClose = new Future<never>()
   readonly rejectOnError = new Future<never>()
+
+  readonly resolveOnAckBySerial = new Map<number, Future<void>>()
 
   sendCounter = 0
   recvCounter = 0
