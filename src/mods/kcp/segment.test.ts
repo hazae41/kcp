@@ -20,8 +20,8 @@ test("kcp segment", async ({ test }) => {
 
   const segment = KcpSegment.newOrThrow({ conversation, command, count, window, timestamp, serial, unackSerial, fragment })
 
-  const bytes = Writable.tryWriteToBytes(segment).unwrap()
-  const frame2 = Readable.tryReadFromBytes(KcpSegment, bytes).unwrap()
+  const bytes = Writable.writeToBytesOrThrow(segment)
+  const frame2 = Readable.readFromBytesOrThrow(KcpSegment, bytes)
 
   assert(Bytes.equals2(segment.fragment.bytes, frame2.fragment.bytes))
 })
