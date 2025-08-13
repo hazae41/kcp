@@ -2,9 +2,9 @@ import { Opaque, Writable } from "@hazae41/binary";
 import { HalfDuplex } from "@hazae41/cascade";
 import { test } from "@hazae41/phobos";
 import { relative, resolve } from "path";
-import { KcpDuplex } from "./stream.js";
+import { KcpDuplex } from "./stream/index.js";
 
-export * from "./segment.test.js";
+export * from "./segment/index.test.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)

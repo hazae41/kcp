@@ -1,4 +1,5 @@
-export * from "./reader.js"
-export * from "./segment.js"
-export * from "./stream.js"
-export * from "./writer.js"
+export * from "./reader/index.js"
+export * from "./segment/index.js"
+export * from "./stream/index.js"
+export * from "./writer/index.js"
+

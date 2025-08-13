@@ -1,7 +1,7 @@
 import { Writable } from "@hazae41/binary";
 import { Future } from "@hazae41/future";
-import { KcpSegment } from "./segment.js";
-import { SecretKcpDuplex } from "./stream.js";
+import { KcpSegment } from "../segment/index.js";
+import { SecretKcpDuplex } from "../stream/index.js";
 
 export class SecretKcpWriter {
 

@@ -1,8 +1,8 @@
 import { Empty, Opaque, Readable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
 import { Console } from "mods/console/index.js";
-import { KcpSegment } from "./segment.js";
-import { SecretKcpDuplex } from "./stream.js";
+import { KcpSegment } from "../segment/index.js";
+import { SecretKcpDuplex } from "../stream/index.js";
 
 export type KcpReadError =
   | ExpectedKcpSegmentError

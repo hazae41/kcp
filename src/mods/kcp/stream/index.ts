@@ -3,8 +3,8 @@ import { FullDuplex } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { Future } from "@hazae41/future";
 import { Awaitable } from "libs/promises/index.js";
-import { SecretKcpReader } from "./reader.js";
-import { SecretKcpWriter } from "./writer.js";
+import { SecretKcpReader } from "../reader/index.js";
+import { SecretKcpWriter } from "../writer/index.js";
 
 export interface KcpDuplexParams {
   /**

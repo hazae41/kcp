@@ -2,7 +2,7 @@ import { Opaque, Readable, Writable } from "@hazae41/binary";
 import { assert, test } from "@hazae41/phobos";
 import { Bytes } from "libs/bytes/index.js";
 import { relative, resolve } from "path";
-import { KcpSegment } from "./segment.js";
+import { KcpSegment } from "./index.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
