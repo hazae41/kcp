@@ -1,0 +1,16 @@
+on:
+  push:
+    tags:
+    - "*"
+
+name: release
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: "npm ci && npm run build"
+      - run: "npm diff --tag=${{github.ref_name}}"
+      - run: "[[ -z $(npm diff --tag=${{github.ref_name}}) ]]"

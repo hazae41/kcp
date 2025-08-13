@@ -19,8 +19,7 @@
   "scripts": {
     "build": "rimraf dist && rollup -c",
     "test": "node ./dist/test/index.test.mjs",
-    "bench": "node ./dist/bench/index.bench.mjs",
-    "prepare": "npm run build"
+    "bench": "node ./dist/bench/index.bench.mjs"
   },
   "dependencies": {
     "@hazae41/binary": "^1.3.9",
