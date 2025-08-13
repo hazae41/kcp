@@ -83,7 +83,7 @@ export class KcpSegment<Fragment extends Writable> {
       + this.fragmentSize
   }
 
-  writeOrThrow(cursor: Cursor) {
+  writeOrThrow(cursor: Cursor<ArrayBuffer>) {
     cursor.writeUint32OrThrow(this.conversation, true)
     cursor.writeUint8OrThrow(this.command)
     cursor.writeUint8OrThrow(this.count)
@@ -96,7 +96,7 @@ export class KcpSegment<Fragment extends Writable> {
     this.fragment.writeOrThrow(cursor)
   }
 
-  static readOrThrow(cursor: Cursor) {
+  static readOrThrow(cursor: Cursor<ArrayBuffer>) {
     const conversation = cursor.readUint32OrThrow(true)
     const command = cursor.readUint8OrThrow()
     const count = cursor.readUint8OrThrow()
@@ -105,7 +105,7 @@ export class KcpSegment<Fragment extends Writable> {
     const serial = cursor.readUint32OrThrow(true)
     const unackSerial = cursor.readUint32OrThrow(true)
     const length = cursor.readUint32OrThrow(true)
-    const bytes = cursor.readAndCopyOrThrow(length)
+    const bytes = new Uint8Array(cursor.readOrThrow(length))
     const fragment = new Opaque(bytes)
 
     return KcpSegment.newOrThrow({ conversation, command, count, window, timestamp, serial, unackSerial, fragment })

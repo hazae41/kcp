@@ -1,5 +1,4 @@
 import { Opaque, Writable } from "@hazae41/binary";
-import { Bytes } from "@hazae41/bytes";
 import { FullDuplex } from "@hazae41/cascade";
 import { Cursor } from "@hazae41/cursor";
 import { Future } from "@hazae41/future";
@@ -85,7 +84,7 @@ export class SecretKcpDuplex {
     readonly params: KcpDuplexParams = {}
   ) {
     const {
-      conversation = new Cursor(Bytes.random(4)).readUint32OrThrow(true)
+      conversation = new Cursor(crypto.getRandomValues(new Uint8Array(4))).readUint32OrThrow(true)
     } = this.params
 
     this.conversation = conversation
