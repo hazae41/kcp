@@ -1,6 +1,5 @@
 import { Empty, Opaque, Writable } from "@hazae41/binary";
 import { Cursor } from "@hazae41/cursor";
-import { Bytes } from "libs/bytes/index.js";
 
 export interface KcpSegmentParams<Fragment extends Writable> {
   readonly conversation: number,
@@ -106,7 +105,7 @@ export class KcpSegment<Fragment extends Writable> {
     const serial = cursor.readUint32OrThrow(true)
     const unackSerial = cursor.readUint32OrThrow(true)
     const length = cursor.readUint32OrThrow(true)
-    const bytes = Bytes.copy(cursor.readOrThrow(length))
+    const bytes = new Uint8Array(cursor.readOrThrow(length))
     const fragment = new Opaque(bytes)
 
     return KcpSegment.newOrThrow({ conversation, command, count, window, timestamp, serial, unackSerial, fragment })
